@@ -1,0 +1,413 @@
+---
+title: "DSC 531 - Statistical Simulations and Data Analysis: Second Assignment"
+author:
+  - Nikolas Petrou^[petrou.p.nikolas@ucy.ac.cy]
+  - Michail Athanasiades^[mathan10@ucy.ac.cy]
+  - Fotis Kyriakou^[fkyria01@ucy.ac.cy]
+output: html_document
+---
+
+## Introduction
+
+The Markdown includes the programming part for the second assignment of the course DSC 531 - Statistical Simulations and Data Analysis of the University of Cyprus MSc in Data Science programme. 
+
+The essential mathematical calculations and most of the comments-observations are included in the $LaTeX$ report document.
+
+## Declaration of general functions and constants
+
+Declaring a Constant Variable which will be used as system tolerance for the different testing checks throughout the work.
+```{r}
+# Declaring a Constant Variable which will be used as 
+# system tolerance for the different testing checks throughout the work
+# Setting tolerance to take a very small value
+TOL <- .Machine$double.eps^0.9
+lockBinding("TOL", globalenv()) # Variable is now locked, and cannot change value
+```
+
+Defining functions which will be used for different checks throughout the work.
+```{r}
+# Custom function that returns TRUE if the given x is a natural number
+# considering that 0 is not a natural number
+is.naturalnumber <- function(x){
+  x > TOL & abs(x - round(x)) < TOL
+}
+
+# Custom function that returns TRUE if the given x is an integer number
+is.integernumber <- function(x){
+  abs(x - round(x)) < TOL
+}
+```
+
+## Exercise 1: Pseudorandom number generator
+### Exercise 1.A
+Following, a function that for a given natural number $n$ and an initial value $X_0$ computes the $n$ next terms $(X_1, X_2, ..., X_n)$ by using a specified pseudorandom number generator
+```{r}
+# Function that for a given natural number n and an initial value X0 
+# computes the n next terms (X1, X2, ..., Xn) by using a specified pseudorandom
+# number generator
+generate_terms <- function(n, X0){
+  # Necessary checks for the input arguments
+  if (! is.naturalnumber(n))
+    stop("Input of given numbers of terms 'n' is not a Natural number")
+  if (! (is.integernumber(X0) && (X0 >= 0) && (X0 <=99)))
+    stop("Input 'X0' must be an integer number in [0, 99]")
+  
+  # Initialize terms vector
+  X <- c(X0)
+  for (i in 1:n){
+    X_i_sqr <- X[i]^2
+    # Calculate how many zeros are required for padding
+    padding_digits_required <- 4 - nchar(as.character(X_i_sqr))
+    # Initializing the padding zero characters
+    padding <- strrep('0', padding_digits_required)
+    # Initializing character string by pasting the padding and X_i_sqr
+    X_i_char <- paste(c(padding, X_i_sqr), collapse = "")
+    # Extracting the two middle digits of the four digit 
+    # number as an integer
+    # Function as.integer() also removes the zeros from head
+    X[i+1] <- as.integer(substr(X_i_char, 2, 3))
+  }
+  
+  # Return vector with the n generated terms
+  # Notice that the initial first value X0 is not return
+  return(X[-1])
+}
+```
+
+
+### Exercise 1.B
+Following, the above method of Exercise 1.A was used for various values of $n$ and $X_0$
+
+In this case, where the value of $n$ is small the method did not seem to cause any problem. But the reason was because the value of $n$ saw very small.
+```{r}
+# Case which does not seem to cause any problem (low value of n)
+generate_terms(n=3, X0=8)
+```
+
+First problematic case, where during the generation process, the occurred four-digit number included zeros for its middle two digits. Therefore, the generator continued generating only zero numbers.
+```{r}
+# First problematic case, where during the generation process, the occurred four-digit number included zeros for its middle two digits. Therefore, the generator continued generating only zero numbers.
+generate_terms(n=10, X0=8)
+# Again the same problematic case
+generate_terms(n=50, X0=33)
+```
+
+Second problematic case the occurred four-digit number $x$ included a number for its middle two digits, where its square recursively produced the same four-digit number $x$ again and again. Therefore, the generator converged and continued generating only $x$ as outcomes.
+```{r}
+# Second problematic case the occurred four-digit number x included a number for its middle two digits, where its square recursively produced the same four-digit number x again and again. Therefore, the generator converged and continued generating only x as outcomes.
+generate_terms(n=10, X0=22)
+# Again the same problematic case
+generate_terms(n=50, X0=88)
+```
+
+## Exercise 2: Inversion
+Defining function that returns the value of the probability density function $f(x)$ for a given $x$
+```{r}
+# Function that returns the probability density function f
+# value for a given x
+f <- function(x){
+  # Necessary checks for the input arguments
+  if (! is.numeric(x))
+    stop("Input 'x' must be a real number")
+  # Returns the function value for given x
+  ifelse(x>=1 , 1/(x^2) , 0)
+}
+```
+
+Defining a function which which generates random numbers with probability density function $f$, by using the inversion method
+```{r}
+# Function which generates random numbers with probability density
+# function f, by using the inversion method
+generate.inversion.f <- function(n=1){
+  # Necessary checks for the input arguments
+  if (! is.naturalnumber(n))
+    stop("Input of given numbers of terms 'n' should be a Natural number")
+  
+  # Seed for reproducibility
+  set.seed(420)
+  
+  # To simulate with pdf f(x), generate u from U(0, 1)
+  # and set x = 1/(1-u) = 1/u
+  U <- runif(n, min = 0, max = 1)
+  X <- 1/U
+}
+```
+Plotting a histogram and a density plot of 10000 random numbers from the implemented function in order to compare with the actual density $f$.
+```{r}
+# Simulate n=10000 samples
+sim.sample <- generate.inversion.f(10000)
+# Plot histogram 
+# By default, the histogram plot will be extended to a range so that the plot approaches 0 at the extreme.
+# In order to restrict the plot to a range that will be more easily interpretable, 
+# the x axis was limited to 25.
+hist(sim.sample, xlim=c(0, 25), ylim=c(0, 1.1),freq=FALSE, breaks='freedman-diaconis', main="Histogram of simulated sample")
+# Plot the theoretical curve
+curve(f(x), col = "blue", lwd=3, add = T)
+
+# By default, density will extend the range so that the density curve approaches 0 at the extreme.
+# In order to restrict the curve to a range that will be more easily interpretable, the x axis was limited to 25.
+dens.our <- density(sim.sample, from = 0, to = 25)
+plot(dens.our, main="Density estimation", ylim=c(0, 1.0), lwd = 2)
+lines(dens.our$x, f(dens.our$x), col="blue", lwd = 2)
+legend("topright",legend=c("Sample", "f(x)"),
+       col=c("black", "blue"), lty=1, cex=1.5)
+```
+
+## Exercise 3: Rejection sampling
+
+### Exercise 3.A
+Initialize function that employs the rejection algorithm in order to simulate $n$ samples from the target distribution $\mathcal{N}(0,1)$, with the proposal being the standard Cauchy distribution.
+```{r}
+# Function that employs the rejection algorithm in order to simulate n samples from the standard normal distribution, with the proposal being the standard Cauchy distribution. The function also returns the occurred total number of draws.
+generate.rejection.f<- function(n=1){
+  # Necessary checks for the input arguments
+  if (! is.naturalnumber(n))
+    stop("Input of given numbers of samples 'n' should be a Natural number")
+  
+  # Seed for reproducibility
+  set.seed(420)
+  
+  # From theory, the expected number of draws C until one acceptance is where f(x)/g(x) is maximized,
+  # where g(x) and f(x) are the densities of the candidate and target distributions respectively.
+  # It was shown that it is maximized when x is equal to 1 or -1.
+  # C is approximately equal to 1.52
+  C <- dnorm(x=1)/dcauchy(x=1)
+  
+  # Initialize empty numeric vector
+  sampled_data <- numeric()
+  
+  # Initialize variable for draws
+  total_draws <- 0
+  
+  # While the accepted simulated values are less than the
+  # desired simulations
+  while(length(sampled_data) < n){
+    # Simulate from uniform(0,1)
+    u <- runif(n=1, min = 0, max = 1)
+    # Simulate from candidate g
+    x <- rcauchy(n=1, location = 0, scale = 1)
+    # if u<=f(x)/(c*g(x)) accept else reject
+    if (u<=dnorm(x)/(C*dcauchy(x)))
+      sampled_data <- append(sampled_data, x)
+    total_draws <- total_draws + 1
+  }
+  return(list(data = sampled_data, total_draws = total_draws))
+}
+```
+### Exercise 3.B
+Running the simulation for $n=10000$ samples and comparing the occurred histogram with the theoretical density of the target $\mathcal{N}(0,1)$
+```{r}
+n <- 10000
+simulation <- generate.rejection.f(n=n)
+hist(simulation$data, freq=FALSE, main = "Histogram of the simulated data")
+curve(dnorm(x), col="blue", add = TRUE)
+legend("topright",legend=c("Density of N(0,1)"),col=c("blue"), lty=1, cex=0.8)
+```
+
+### Exercise 3.C
+
+The expected number of draws and total occurred draws were to be compared. 
+
+The simulation function returned the total number of draws as an output. Regarding the expected theoretical value of the draws, it was shown that  he expected number of draws $C$ until an acceptance occurs was the $c = sup_{x \in \mathbb{R}}\frac{f(x)}{g(x)}$. After calculations, it was shown that the local maximum is achieved where $x=\pm1$.
+
+Following the two above mentioned values are compared:
+```{r}
+# From theory, the expected number of draws C until we accept is where f(x)/g(x) is maximized,
+# where g(x) and f(x) are the densities of the candidate and target distributions respectively.
+# It was shown that it is maximized when x is equal to 1 or -1.
+# C is approximately equal to 1.52
+C <- dnorm(x=1)/dcauchy(x=1)
+# Calculate expected number of draws
+expected_draws <- C * n
+
+paste("Total draws occurred: ", simulation$total_draws)
+paste("Expected draws: ", expected_draws)
+paste("Total draws occurred - Expected draws ratio: ", 
+      simulation$total_draws / expected_draws)
+```
+
+In conclusion, the two values are approximately equal.
+
+## Exercise 4
+
+### Exercise 4.A
+Regarding the first part of the exercise, the integral $J$ was evaluated after calculations which are shown in the $LaTeX$ document report. The evaluation states that the integral was calculated as follows:
+
+$J =\int_{-\infty}^{\infty}(x+\alpha)^{2} \phi(x) d x = 1+a^2$
+
+For the more detailed mathematical calculations refer to the $LaTeX$ document report.
+
+### Exercise 4.B
+Initialize function which returns the Monte Carlo estimate of $\mathbb{E}(h(X))$, for $X \sim N(0, 1)$ for a given function $h$.
+```{r}
+# Function which returns the Monte Carlo estimate for for a given function func()
+# by generating simulations X from the standard normal N(0, 1) and returning the 
+# expected value E(func(X))
+MC_integrate_sd_norm <- function(n, func, a){
+  # Necessary checks for the input arguments
+  if (! is.naturalnumber(n))
+    stop("Input of given numbers of samples 'n' should be a Natural number")
+  if (! is.numeric(a))
+    stop("Input 'a' must be a real number")
+  if (! is.function(func))
+    stop("Input 'func' should be a defined function")
+  if (! length(formals(func)) == 2)
+    stop("Input function 'func' should take exactly two parameters (x and a)")
+  
+  # Seed for reproducibility
+  set.seed(420)
+  
+  # Simulate n times from normal
+  x.sam <- rnorm(n, mean=0, sd=1)
+  # Calculate and return the monte-carlo estimate
+  theta.mc <- mean(sapply(x.sam, func, a=a))
+}
+```
+Initialize $h(x)$ function, which in this case, $h(x) = (x+a)^2$.
+```{r}
+# Initialize h function
+h <- function(x, a){
+  # Necessary checks for the input arguments
+  if (! is.numeric(x))
+    stop("Input 'x' must be a real number")
+  if (! is.numeric(a))
+    stop("Input 'a' must be a real number")
+  
+  # Function to be returned
+  (x+a)**2
+}
+```
+Estimating $J$ by Monte-Carlo integration using different number of simulations $n$ and $a$ values
+```{r}
+# Estimating J by Monte-Carlo integration using different number of simulations n and a values
+for(a in 0:4){
+  for(n in c(100, 1000)){
+    print(paste("n=", n," a=", a))
+    print(paste("Estimated value for J ", MC_integrate_sd_norm(n=n, func=h, a=a)))
+    print(paste("Actual value for J ", 1+a**2))
+    cat("\n")
+  }
+}
+```
+As expected, as number of samples $n$ is increased the estimation is more accurate (similar) compared with the actual value.
+
+### Exercise 4.C
+Following, the $J$ is computed through Importance Sampling based on the candidate $g(x) = \phi(x-\alpha)$. It is important to mention that $\phi(x-a)$ is equivalent with the Probability Density Function of the distribution $\mathcal{N}(\alpha, 1)$. Therefore the candidate was set to be the function $g(x)$, which is the Probability Density Function of the distribution $\mathcal{N}(\alpha, 1)$.
+```{r}
+# Function which uses Importance Sampling based on the candidate g(x) = N(a, 1), to return samples from
+# the target distribution of N(0, 1)
+IS_generate<- function(n, func, a){
+  # Necessary checks for the input arguments
+  if (! is.naturalnumber(n))
+    stop("Input of given numbers of samples 'n' should be a Natural number")
+  if (! is.numeric(a))
+    stop("Input 'a' must be a real number")
+  if (! is.function(func))
+    stop("Input 'func' should be a defined function")
+  if (! length(formals(func)) == 2)
+    stop("Input function 'func' should take exactly two parameters (x and a)")
+  
+  # Seed for reproducibility
+  set.seed(420)
+  
+  # Simulate from g(x)
+  x.sam = rnorm(n, mean=a, sd=1)
+  
+  # Weight the simulations 
+  # Actual calculation: w = f(x)/g(x)
+  # Modified equivalent calculation: w = exp^(log(f(x))-log(g(x)))
+  w = exp(dnorm(x.sam, mean=0, sd=1, log=TRUE) - dnorm(x.sam, mean=a, sd=1, log=TRUE))
+  
+  # Returning the sample average
+  mean(w*sapply(x.sam, func, a=a))
+}
+```
+
+Estimating $J$ by Importance Sampling using different number of simulations $n$ and $a$ values.
+```{r}
+for(a in 0:4){
+  for(n in c(100, 1000)){
+    print(paste("n=", n," a=", a))
+    print(paste("Estimated value for J using IS: ", IS_generate(n=n, func=h, a=a)))
+    print(paste("Actual value for J: ", 1+a**2))
+    cat("\n")
+  }
+}
+```
+
+## Exercise 5
+Function that consists of the implementation of the random walk Metropolis-Hastings algorithm for sampling from the target distribution $N(100, 1)$, using proposals $Y = X +\epsilon$ where $\epsilon$ follows the standard normal distribution.
+```{r}
+# Function that consists of the implementation of the random walk Metropolis-Hastings algorithm for sampling from the target distribution N(100, 1), using proposals Y = X + epsilon where epsilon follows the standard normal distribution
+random.walk.metropolis.hastings.generate <- function(n=1, x0){
+  # Necessary checks for the input arguments
+  if (! is.numeric(x0))
+    stop("Input 'x0' must be a real number")
+  if (! is.naturalnumber(n))
+    stop("Input of given numbers of samples 'n' should be a Natural number")
+  
+  # Seed for reproducibility
+  set.seed(420)
+  
+  # Initialize empty numeric vector
+  X <- numeric()
+  X[1] <- x0 
+  # While we haven't reached the Xn path
+  for(i in 1:n){
+    # Simulate epsilons which follow the symmetric proposal N(0,1) 
+    # and let y = x + epsilon
+    epsilon <- rnorm(n=1, mean=0, sd=1)
+    y <- X[i] + epsilon
+    # Compute the acceptance ratio a
+    # from theory it was shown that since proposal is symmetric
+    # the following formula is used 
+    a <- min(dnorm(x=y, mean = 100, sd = 1, log = TRUE) - dnorm(x=X[i], mean = 100, sd = 1, log = TRUE), 
+             log(1)) # Using log since we can run to numerical issues with mean equal to 100
+    # Simulate u from u(0, 1)
+    u <- runif(n=1, min=0, max=1)
+    # If u<= a(y|x) then accept y and move with prob a
+    # otherwise "reject" move, and stay at x
+    x_new <- ifelse(log(u) <= a, y, X[i])
+    X <- append(X, x_new)
+  }
+    
+  return(X)
+}
+```
+
+Experimenting with different starting values for $X_0$ and creating a plot for the path $X_0, X_1, ..., X_n$ which illustrates the burn-in period.
+```{r}
+library('ggplot2')
+library('gridExtra')
+par(mfrow=c(2,2))
+
+# Initialize list that will includes the trace plots 
+plist <- list()
+# Set n for 1000 samples
+n <- 1000 
+# Running the Metropolis-Hastings algorithm for sampling from the target distribution N(100, 1)
+# with different starting values
+for (x0 in c(-100, 85, 100, 115)){
+  X <- random.walk.metropolis.hastings.generate(n=n, x0=x0)
+  # Trace plot of the samples to see how the chain moved around
+  plist[[length(plist)+1]] <-  ggplot(data=data.frame(X), aes(x=1:length(X), y=X)) + 
+                                  geom_line() +
+                                  labs(title = paste("Chain movement for x0=", x0) , x='Iteration') + 
+                                  theme(text=element_text(size=12.5))
+  
+  # Histograms of the samples to see if they indeed look like a standard normal distribution                
+  hist(X, breaks='fd', main = paste("Histogram for x0 = ", x0))
+}
+
+# Plotting the traces of the samples to see how the chain moved 
+# around for the different starting values
+# Finding an ideal number of columns for plot dynamically
+nCol <- floor(sqrt(length(plist)))
+# Dynamically call grid.arrange to plot multiple ggplots
+do.call("grid.arrange", c(plist, ncol=nCol))
+```
+
+As expected, it was noticed that when the algorithm is initialized with a $X_0$ value which is very different (e.g. $x_0 = -100$) from the actual mean $\mu=100$ of the target distribution, the algorithm requires more iterations (sampling) until it converges. On the other hand, when the algorithm is initialized with the exact value of $\mu=100$ it converges instantly and samples from the target distribution are generated from the start. 
+
+
+It was also confirmed from the histograms, that with initial $X_0$ values closer to the actual $\mu=100$, the generated samples were more likely to follow the target distribution  $\mathcal{N}(100,1)$. In cases where many samples were generated before the convergence occurred, those generated samples had an impact on their corresponing histogram. In addition, the more iterations it took for the algorithm to achieve stationarity, the less normal the histogram of the generated samples looked like.
