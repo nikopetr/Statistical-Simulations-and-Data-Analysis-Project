@@ -1,7 +1,7 @@
 # Statistical-Simulations-and-Data-Analysis-Project
 
 <p align="center">
-  <img src="https://github.com/nikopetr/Statistical-Simulations-and-Data-Analysis-Project/blob/main/images/download.png" width="800" height="400"/>
+  <img src="https://github.com/nikopetr/Statistical-Simulations-and-Data-Analysis-Project/blob/main/images/download.png" width="500" height="275"/>
 </p>
 
 ## Overview
