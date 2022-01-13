@@ -1,15 +1,15 @@
 # Statistical-Simulations-and-Data-Analysis-Project
 
-<p align="center">
-  <img src="https://github.com/nikopetr/Statistical-Simulations-and-Data-Analysis-Project/blob/main/images/download.png" width="500" height="275"/>
-</p>
-
 ## Overview
 The repository includes the programming part for the second assignment of the course DSC 531 - Statistical Simulations and Data Analysis of the [University of Cyprus MSc in Data Science programme](https://datascience.cy/).
 
 **Authors**: Nikolas Petrou, Fotis Kyriakou, Michalis Athanasiades
 
 ## Topics covered
+<p align="center">
+  <img src="https://github.com/nikopetr/Statistical-Simulations-and-Data-Analysis-Project/blob/main/images/download.png" width="600" height="275"/>
+</p>
+
 - Simulation techniques
 - Monte Carlo
 - Inversion sampling
